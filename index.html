@@ -1,30 +1,17 @@
-      
+
 <!doctype html>
 <html lang="ar" dir="ltr">
 <head>
 <meta charset="utf-8">
-<title>ELECTRIC.ASSEM</title>
+<title>ELECTRIC.ASSEM - Full (Image Tools + Video Gallery)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css"/>
 
 <style>
-body{
-  margin:0;
-  min-height:100vh;
-  display:grid;
-  place-items:center;
-  font-family:Arial,sans-serif;
-  background:linear-gradient(180deg,#e8f2ff,#f7fbff)
-}
-.card{
-  width:640px;
-  max-width:95%;
-  background:#fff;
-  border-radius:18px;
-  box-shadow:0 20px 40px rgba(0,0,0,.12);
-  overflow:hidden
-}
+body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:Arial,sans-serif;background:linear-gradient(180deg,#e8f2ff,#f7fbff)}
+.card{width:640px;max-width:95%;background:#fff;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,.12);overflow:hidden}
 .header{text-align:center;padding:20px}
 h1{margin:0;color:#123a62}
 
@@ -34,51 +21,67 @@ h1{margin:0;color:#123a62}
   border-radius:14px;
   width:70%;
   max-width:520px;
+  min-width:240px;
   height:240px;
   display:flex;
   align-items:center;
   justify-content:center;
   overflow:hidden;
-  background:#fff;
+  position:relative;
+  background:#ffffff;
+  cursor:default; /* عرض فقط */
 }
+
+/* الصورة نفسها */
 #image{
   display:none;
-  max-width:100%;
-  max-height:100%;
-  object-fit:contain;
+  width:100%;
+  height:100%;
+  object-fit:contain;         /* افتراضي */
+  object-position:center;
+  background:#ffffff;
+  touch-action:none;          /* للسحب على الموبايل */
 }
+
+/* placeholder */
 #ph{color:#2b4a66;font-weight:700}
 
 .content{padding:18px}
 label{font-size:12px;font-weight:bold;color:#2b4a66}
-input,select{
-  width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid #cfdceb;
-  margin-top:6px
-}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #cfdceb;margin-top:6px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row-inline{display:flex;gap:10px;align-items:center}
 .row-inline input{flex:1}
 .row-inline select{width:45%;min-width:160px}
 
-.btns{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:12px;
-  margin-top:18px
-}
-button{
-  padding:12px;
-  border-radius:14px;
-  border:none;
-  font-weight:bold;
-  cursor:pointer
-}
+.btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:18px}
+button{padding:12px;border-radius:14px;border:none;font-weight:bold;cursor:pointer}
 .img{background:#eef6ff}
 .confirm{background:#0b5ea8;color:#fff}
 .func{background:#0b1b2b;color:#fff}
+
+.apply-wrap{margin-top:10px;display:none;justify-content:center;gap:10px}
+.apply-btn,.cancel-btn{padding:10px 14px;border-radius:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px}
+.apply-btn{background:#1faa59;color:#fff;border:none}
+.cancel-btn{background:#eef6ff;color:#0b4c86;border:1px solid #cfe3fb}
+
+/* --- Tools bar --- */
+.tool-btn{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #cfe3fb;
+  background:#eef6ff;
+  color:#0b4c86;
+  font-weight:800;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.tool-btn:active{transform:translateY(1px)}
+.tool-btn.on{background:#0b5ea8;color:#fff;border-color:#0b5ea8}
+
+video{width:100%;margin-top:10px;border-radius:12px;display:none}
 </style>
 </head>
 
@@ -87,91 +90,452 @@ button{
   <div class="header">
     <h1>ELECTRIC.ASSEM</h1>
 
-    <div class="image-box">
-      <img id="image">
+    <!-- مربع الصورة: للعرض فقط -->
+    <div class="image-box" id="imageBox">
+      <img id="image" alt="">
       <span id="ph"><i class="fa-solid fa-image"></i> IMAGE PREVIEW</span>
+    </div>
+
+    <!-- Apply / Cancel -->
+    <div class="apply-wrap" id="applyWrap">
+      <button class="apply-btn" id="applyBtn" type="button"><i class="fa-solid fa-check"></i> Apply / Save</button>
+      <button class="cancel-btn" id="cancelBtn" type="button"><i class="fa-solid fa-xmark"></i> Cancel</button>
+    </div>
+
+    <!-- Tools -->
+    <div class="tool-wrap" id="toolWrap" style="display:none;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <button class="tool-btn" id="editBtn" type="button"><i class="fa-solid fa-crop-simple"></i> Edit</button>
+      <button class="tool-btn" id="fillBtn" type="button" aria-pressed="false"><i class="fa-solid fa-expand"></i> Fill</button>
+      <button class="tool-btn" id="resetBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="tool-btn" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download</button>
+
+      <div class="zoom-wrap" id="zoomWrap" style="display:none;align-items:center;gap:8px;padding:6px 10px;border:1px solid #cfe3fb;border-radius:12px;background:#fff;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="zoomRange" type="range" min="0.5" max="3" step="0.01" value="1" style="width:180px;">
+        <button class="tool-btn" id="rotLBtn" type="button" title="Rotate Left"><i class="fa-solid fa-rotate-left"></i></button>
+        <button class="tool-btn" id="rotRBtn" type="button" title="Rotate Right"><i class="fa-solid fa-rotate-right"></i></button>
+      </div>
     </div>
   </div>
 
   <div class="content">
     <label>CUSTOMER</label>
-    <select>
-      <option selected disabled>Choose...</option>
-      <option>KHALDA</option>
-      <option>AGIBA</option>
-      <option>SCIMITTAR</option>
+    <select id="customer">
+      <option value="" selected disabled>Choose...</option>
+      <option value="KHALDA">KHALDA</option>
+      <option value="AGIBA">AGIBA</option>
+      <option value="SCIMITTAR">SCIMITTAR</option>
     </select>
 
-    <div class="row" style="margin-top:12px">
-      <div>
-        <label>RIG</label>
-        <input>
-      </div>
+    <div class="row" style="margin-top:12px;">
+      <div><label>RIG</label><input id="rig"></div>
       <div>
         <label>SYSTEM</label>
-        <select>
-          <option selected disabled>Choose...</option>
-          <option>WINCATT</option>
-          <option>MTT</option>
-          <option>ATEX</option>
+        <select id="system">
+          <option value="" selected disabled>Choose...</option>
+          <option value="WINCATT">WINCATT</option>
+          <option value="MTT">MTT</option>
+          <option value="ATEX">ATEX</option>
         </select>
       </div>
     </div>
 
-    <label style="margin-top:12px;display:block">DEVICE ID</label>
-    <input>
+    <label style="margin-top:12px;display:block;">DEVICE ID</label>
+    <input id="deviceId">
 
-    <label style="margin-top:12px;display:block">LOADCELL NUM</label>
+    <label style="margin-top:12px;display:block;">LOADCELL NUM</label>
     <div class="row-inline">
-      <input>
-      <select>
-        <option selected disabled>TYPE</option>
-        <option>TENSION</option>
-        <option>COMPRESSION</option>
+      <input id="loadcellNum">
+      <select id="loadcellType">
+        <option value="" selected disabled>TYPE</option>
+        <option value="TENSION">TENSION</option>
+        <option value="COMPRESSION">COMPRESSION</option>
       </select>
     </div>
 
-    <label style="margin-top:12px;display:block">DEVICE STATUS</label>
-    <input>
+    <label style="margin-top:12px;display:block;">DEVICE STATUS</label>
+    <input id="deviceStatus">
 
     <div class="btns">
-      <button class="img" id="imgBtn">
-        <i class="fa-solid fa-camera"></i> IMAGE
-      </button>
-      <button class="confirm">CONFIRM</button>
-      <button class="func">FUNCTION</button>
+      <button class="img" id="imgBtn" type="button"><i class="fa-solid fa-camera"></i> IMAGE</button>
+      <button class="confirm" id="confirmBtn" type="button"><i class="fa-solid fa-circle-check"></i> CONFIRM</button>
+      <button class="func" id="vidBtn" type="button"><i class="fa-solid fa-video"></i> FUNCTION</button>
     </div>
 
-    <!-- input الحقيقي -->
-    <input
-      type="file"
-      id="imgInput"
-      accept="image/*"
-      hidden
-    >
+    <video id="video" controls></video>
+
+    <!-- inputs -->
+    <input type="file" id="imgInput" accept="image/*" hidden>
+
+    <!-- ✅ فيديو من الـ Gallery (بدون capture) -->
+    <input type="file" id="vidInput" accept="video/*" hidden>
   </div>
 </div>
 
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script>
-const imgBtn   = document.getElementById("imgBtn");
-const imgInput = document.getElementById("imgInput");
-const image    = document.getElementById("image");
-const ph       = document.getElementById("ph");
+const imgBtn = document.getElementById('imgBtn');
+const imgInput = document.getElementById('imgInput');
+const imageBox = document.getElementById('imageBox');
+const image = document.getElementById('image');
+const ph = document.getElementById('ph');
 
-imgBtn.addEventListener("click", () => {
-  imgInput.click(); // 👈 ده اللي بيفتح صور الموبايل
-});
+const applyWrap = document.getElementById('applyWrap');
+const applyBtn = document.getElementById('applyBtn');
+const cancelBtn = document.getElementById('cancelBtn');
 
-imgInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
+const toolWrap = document.getElementById('toolWrap');
+const editBtn = document.getElementById('editBtn');
+const fillBtn = document.getElementById('fillBtn');
+const resetBtn = document.getElementById('resetBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+const zoomWrap = document.getElementById('zoomWrap');
+const zoomRange = document.getElementById('zoomRange');
+const rotLBtn = document.getElementById('rotLBtn');
+const rotRBtn = document.getElementById('rotRBtn');
+
+const vidBtn = document.getElementById('vidBtn');
+const vidInput = document.getElementById('vidInput');
+const video = document.getElementById('video');
+
+let cropper = null;
+let isEditMode = false;
+let isFillMode = false;
+let lastCommittedDataUrl = "";
+
+/* === Pan بعد Apply (لما تكون Fill) === */
+let panEnabled = false;
+let isPanning = false;
+let startX = 0, startY = 0;
+let curX = 0, curY = 0;
+
+/* === Smart Fit === */
+function smartFitBox(){
+  if(!image || !image.src) return;
+  if(!image.naturalWidth || !image.naturalHeight) return;
+
+  const boxWidth = imageBox.clientWidth;
+  const ratio = image.naturalHeight / image.naturalWidth;
+  const newH = Math.max(180, Math.min(520, boxWidth * ratio));
+  imageBox.style.height = newH + 'px';
+}
+window.addEventListener('resize', smartFitBox);
+
+function setImageTransform(){
+  image.style.transform = `translate(${curX}px, ${curY}px)`;
+}
+function enablePan(){
+  panEnabled = true;
+  image.style.cursor = 'grab';
+}
+function disablePan(){
+  panEnabled = false;
+  isPanning = false;
+  curX = 0; curY = 0;
+  image.style.transform = '';
+  image.style.cursor = 'default';
+}
+
+/* pointer events للـ Pan */
+function pointerDown(e){
+  if(!panEnabled) return;
+  isPanning = true;
+  image.setPointerCapture?.(e.pointerId);
+  image.style.cursor = 'grabbing';
+  startX = e.clientX - curX;
+  startY = e.clientY - curY;
+}
+function pointerMove(e){
+  if(!panEnabled || !isPanning) return;
+  curX = e.clientX - startX;
+  curY = e.clientY - startY;
+  setImageTransform();
+}
+function pointerUp(){
+  if(!panEnabled) return;
+  isPanning = false;
+  image.style.cursor = 'grab';
+}
+image.addEventListener('pointerdown', pointerDown);
+image.addEventListener('pointermove', pointerMove);
+image.addEventListener('pointerup', pointerUp);
+image.addEventListener('pointercancel', pointerUp);
+image.addEventListener('pointerleave', pointerUp);
+
+function downloadCurrentImage(){
+  if(!image.src) return;
+  const a = document.createElement('a');
+  const name = `image_${Date.now()}.jpg`;
+
+  if(image.src.startsWith('data:')){
+    a.href = image.src;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+
+  fetch(image.src).then(r=>r.blob()).then(blob=>{
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }).catch(()=>{});
+}
+
+function enterEditMode(){
+  if(!image.src || isEditMode) return;
+
+  disablePan();
+  isEditMode = true;
+  editBtn.classList.add('on');
+  zoomWrap.style.display = 'flex';
+
+  if(cropper) cropper.destroy();
+  cropper = new Cropper(image, {
+    viewMode: 1,
+    dragMode: 'move',
+    aspectRatio: NaN,
+    autoCropArea: 1,
+    responsive: true,
+    background: false,
+    movable: true,
+    zoomable: true,
+    rotatable: true,
+    scalable: true
+  });
+
+  zoomRange.value = 1;
+}
+
+function exitEditMode(commit){
+  if(!isEditMode) return;
+  isEditMode = false;
+  editBtn.classList.remove('on');
+  zoomWrap.style.display = 'none';
+
+  if(!cropper) return;
+
+  if(commit){
+    const canvas = cropper.getCroppedCanvas({
+      fillColor:'#ffffff',
+      imageSmoothingEnabled:true,
+      imageSmoothingQuality:'high'
+    });
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    image.src = dataUrl;
+    lastCommittedDataUrl = dataUrl;
+    image.onload = () => { smartFitBox(); image.onload = null; };
+  }else{
+    if(lastCommittedDataUrl){
+      image.src = lastCommittedDataUrl;
+      image.onload = () => { smartFitBox(); image.onload = null; };
+    }
+  }
+
+  cropper.destroy();
+  cropper = null;
+
+  if(isFillMode) enablePan();
+}
+
+/* === Upload image: من زر IMAGE فقط === */
+imgBtn.addEventListener('click', () => imgInput.click());
+
+imgInput.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
   if(!file) return;
 
+  // اخفاء الفيديو لو كان ظاهر
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  video.style.display = 'none';
+
+  // reset حالات الصورة
+  disablePan();
+  isFillMode = false;
+  fillBtn.classList.remove('on');
+  fillBtn.setAttribute('aria-pressed','false');
+
+  if(cropper){ cropper.destroy(); cropper = null; }
+  isEditMode = false;
+  editBtn.classList.remove('on');
+  zoomWrap.style.display = 'none';
+
   const url = URL.createObjectURL(file);
+
+  imageBox.style.height = '240px';
+  image.style.transform = 'translate(0,0)';
+  curX = 0; curY = 0;
+  image.style.objectFit = 'contain';
+
+  image.onload = () => {
+    image.onload = null;
+    smartFitBox();
+
+    // افتح Cropper مباشرة
+    if(cropper) cropper.destroy();
+    cropper = new Cropper(image, {
+      viewMode: 1,
+      dragMode: 'move',
+      aspectRatio: NaN,
+      autoCropArea: 0.92,
+      responsive: true,
+      background: false,
+      movable: true,
+      zoomable: true,
+      rotatable: true,
+      scalable: true
+    });
+
+    isEditMode = true;
+    editBtn.classList.add('on');
+    zoomWrap.style.display = 'flex';
+    zoomRange.value = 1;
+    applyWrap.style.display = 'flex';
+  };
+
   image.src = url;
-  image.style.display = "block";
-  ph.style.display = "none";
+  image.style.display = 'block';
+  ph.style.display = 'none';
+  toolWrap.style.display = 'flex';
+
+  lastCommittedDataUrl = url;
+});
+
+/* Apply */
+applyBtn.addEventListener('click', () => {
+  if(isEditMode){
+    exitEditMode(true);
+  }
+  applyWrap.style.display = 'none';
+
+  if(isFillMode){
+    image.style.objectFit = 'cover';
+    enablePan();
+  }else{
+    image.style.objectFit = 'contain';
+    disablePan();
+  }
+
+  curX = 0; curY = 0;
+  image.style.transform = 'translate(0,0)';
+});
+
+/* Cancel */
+cancelBtn.addEventListener('click', () => {
+  if(isEditMode){
+    exitEditMode(false);
+    applyWrap.style.display = 'none';
+    return;
+  }
+
+  if(cropper){ cropper.destroy(); cropper = null; }
+  isEditMode = false;
+  editBtn.classList.remove('on');
+  zoomWrap.style.display = 'none';
+
+  disablePan();
+  isFillMode = false;
+  fillBtn.classList.remove('on');
+  fillBtn.setAttribute('aria-pressed','false');
+
+  image.src = '';
+  imageBox.style.height = '240px';
+  image.style.display = 'none';
+  ph.style.display = 'block';
+  applyWrap.style.display = 'none';
+  toolWrap.style.display = 'none';
+  imgInput.value = '';
+});
+
+/* Tools */
+editBtn.addEventListener('click', () => {
+  if(!image.src) return;
+  if(isEditMode){
+    exitEditMode(false);
+    applyWrap.style.display = 'none';
+    return;
+  }
+  applyWrap.style.display = 'flex';
+  enterEditMode();
+});
+
+fillBtn.addEventListener('click', () => {
+  if(!image.src) return;
+  isFillMode = !isFillMode;
+  fillBtn.classList.toggle('on', isFillMode);
+  fillBtn.setAttribute('aria-pressed', isFillMode ? 'true':'false');
+
+  if(isEditMode) return;
+
+  if(isFillMode){
+    image.style.objectFit = 'cover';
+    enablePan();
+  }else{
+    image.style.objectFit = 'contain';
+    disablePan();
+    image.style.transform = 'translate(0,0)';
+    curX = 0; curY = 0;
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  if(!image.src) return;
+
+  if(isEditMode && cropper){
+    cropper.reset();
+    zoomRange.value = 1;
+    return;
+  }
+
+  disablePan();
+  isFillMode = false;
+  fillBtn.classList.remove('on');
+  fillBtn.setAttribute('aria-pressed','false');
+
+  image.style.objectFit = 'contain';
+  image.style.transform = 'translate(0,0)';
+  curX = 0; curY = 0;
+
+  smartFitBox();
+});
+
+downloadBtn.addEventListener('click', downloadCurrentImage);
+
+zoomRange.addEventListener('input', () => {
+  const z = parseFloat(zoomRange.value);
+  if(cropper) cropper.zoomTo(z);
+});
+rotLBtn.addEventListener('click', () => { if(cropper) cropper.rotate(-90); });
+rotRBtn.addEventListener('click', () => { if(cropper) cropper.rotate(90); });
+
+/* === Video upload: زر FUNCTION يفتح Gallery فيديو (بدون capture) === */
+vidBtn.addEventListener('click', () => vidInput.click());
+
+vidInput.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+
+  // اقفل أي تعديل صورة
+  applyWrap.style.display = 'none';
+  if(cropper){ cropper.destroy(); cropper = null; }
+  isEditMode = false;
+  editBtn.classList.remove('on');
+  zoomWrap.style.display = 'none';
+  disablePan();
+
+  // اعرض الفيديو
+  const url = URL.createObjectURL(file);
+  video.src = url;
+  video.style.display = 'block';
 });
 </script>
 </body>
 </html>
-
