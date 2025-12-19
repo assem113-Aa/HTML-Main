@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>النموذج الأساسي</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+:root{--blue:#1f6feb;--bg:#f4f7ff;--border:#e6ecff;--text:#0f172a}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Tahoma,Arial;background:var(--bg);
+min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:var(--text)}
+.wrap{width:min(950px,100%)}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+label{color:var(--blue);font-weight:900}
+.field{display:flex;flex-direction:column;gap:8px}
+input,select{padding:12px;border-radius:12px;border:1px solid #dbe6ff;font-family:inherit}
+button{margin-top:16px;padding:14px;border-radius:14px;border:none;
+background:var(--blue);color:#fff;font-weight:900;cursor:pointer}
+.box{padding:12px;border-radius:12px;border:1px solid #dbe6ff;background:#f8fbff}
+#qr{margin-top:16px}
+.small{font-size:12px;color:#64748b;margin-top:8px}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin:0;color:#1f6feb">النموذج الأساسي</h2>
+
+    <div class="grid">
+      <div class="field"><label>الاسم</label><input id="name"></div>
+      <div class="field"><label>الوظيفة</label><input id="job"></div>
+      <div class="field"><label>المرتب</label><input id="salary"></div>
+      <div class="field">
+        <label>الإجازة</label>
+        <select id="leave">
+          <option>سنوية</option>
+          <option>مرضية</option>
+          <option>عارضة</option>
+          <option>بدون راتب</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Device ID</label>
+        <input id="device">
+      </div>
+    </div>
+
+    <button onclick="saveForm()">Save</button>
+    <div class="small">سيتم إنشاء نسخة HTML ثابتة + QR يفتحها</div>
+
+    <div id="qr"></div>
+  </div>
+</div>
+
+<script>
+const WHATSAPP = "201274693883";
+
+function esc(s){
+  return (s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+
+function saveForm(){
+  const data={
+    name:name.value, job:job.value, salary:salary.value,
+    leave:leave.value, device:device.value
+  };
+  if(!data.device){alert("اكتب Device ID");return;}
+
+  const locked = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fault Report</title>
+<style>
+body{margin:0;font-family:system-ui,Tahoma,Arial;background:#f4f7ff;
+display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#fff;border:1px solid #e6ecff;border-radius:16px;padding:20px;width:min(900px,100%)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+label{color:#1f6feb;font-weight:900}
+.box{padding:12px;border-radius:12px;border:1px solid #dbe6ff;background:#f8fbff}
+textarea{padding:12px;border-radius:12px;border:1px solid #dbe6ff;
+min-height:140px;font-family:inherit}
+#preview img,#preview video{max-width:100%;margin-top:10px;border-radius:12px}
+button{margin-top:16px;padding:14px;border-radius:14px;border:none;
+background:#1f6feb;color:#fff;font-weight:900;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card">
+<h2 style="color:#1f6feb">Fault Report</h2>
+
+<div class="grid">
+  <div><label>الاسم</label><div class="box">${esc(data.name)}</div></div>
+  <div><label>الوظيفة</label><div class="box">${esc(data.job)}</div></div>
+  <div><label>المرتب</label><div class="box">${esc(data.salary)}</div></div>
+  <div><label>الإجازة</label><div class="box">${esc(data.leave)}</div></div>
+  <div style="grid-column:1/-1"><label>Device ID</label><div class="box">${esc(data.device)}</div></div>
+
+  <div style="grid-column:1/-1">
+    <label>Fault Report</label>
+    <textarea id="fault"></textarea>
+  </div>
+
+  <div style="grid-column:1/-1">
+    <label>إضافة صورة أو فيديو</label>
+    <input type="file" id="media" accept="image/*,video/*" onchange="previewMedia(this)">
+    <div id="preview"></div>
+  </div>
+</div>
+
+<button onclick="send()">Send</button>
+
+<script>
+function previewMedia(input){
+  const p=document.getElementById('preview');p.innerHTML='';
+  const f=input.files[0]; if(!f) return;
+  if(f.type.startsWith('image')){
+    const i=document.createElement('img');i.src=URL.createObjectURL(f);p.appendChild(i);
+  }else if(f.type.startsWith('video')){
+    const v=document.createElement('video');v.src=URL.createObjectURL(f);v.controls=true;p.appendChild(v);
+  }
+}
+function send(){
+  const fault=document.getElementById('fault').value.trim();
+  if(!fault){alert('اكتب المشكلة');return;}
+  const msg=\`Fault Report
+Device: ${esc(data.device)}
+Name: ${esc(data.name)}
+Job: ${esc(data.job)}
+Salary: ${esc(data.salary)}
+Leave: ${esc(data.leave)}
+
+Problem:
+\${fault}
+
+📎 يوجد صورة / فيديو مرفق\`;
+  window.open('https://wa.me/${WHATSAPP}?text='+encodeURIComponent(msg),'_blank');
+}
+</script>
+</div>
+</body>
+</html>`;
+
+  const blob=new Blob([locked],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+
+  document.getElementById("qr").innerHTML="";
+  new QRCode(document.getElementById("qr"),{text:url,width:180,height:180});
+
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="Fault_Report_"+data.device+".html";
+  a.click();
+}
+</script>
+</body>
+</html>
